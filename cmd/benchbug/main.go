@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,8 +29,8 @@ type Task struct {
 func main() {
 	file := flag.String("f", "", "scenario file")
 	flag.Parse()
-	if *file == "" {
-		fmt.Fprintln(os.Stderr, "missing -f")
+	if strings.TrimSpace(*file) == "" {
+		fmt.Fprintln(os.Stderr, "usage: benchbug -f scenario.yaml")
 		os.Exit(1)
 	}
 	sc, err := loadScenario(*file)
@@ -48,15 +49,30 @@ func loadScenario(path string) (*Scenario, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(strings.TrimSpace(string(b))) == 0 {
+		return nil, fmt.Errorf("scenario file is empty")
+	}
 	var sc Scenario
 	if err := yaml.Unmarshal(b, &sc); err != nil {
 		return nil, err
+	}
+	if sc.VUs <= 0 {
+		sc.VUs = 1
+	}
+	if sc.Duration == "" {
+		sc.Duration = "10s"
 	}
 	return &sc, nil
 }
 
 func runScenario(sc *Scenario) error {
-	d, _ := time.ParseDuration(sc.Duration)
+	d, err := time.ParseDuration(sc.Duration)
+	if err != nil {
+		return fmt.Errorf("bad duration: %w", err)
+	}
+	if len(sc.Tasks) == 0 {
+		return fmt.Errorf("scenario has no tasks")
+	}
 	stop := time.After(d)
 	var wg sync.WaitGroup
 	for i := 0; i < sc.VUs; i++ {
