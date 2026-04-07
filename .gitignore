@@ -1,0 +1,3 @@
+/benchbug
+*.test
+coverage.out
