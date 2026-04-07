@@ -7,22 +7,59 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
-func main() {
-	url := flag.String("url", "", "url to hit")
-	vus := flag.Int("vus", 1, "virtual users")
-	duration := flag.Duration("duration", 10*time.Second, "run duration")
-	flag.Parse()
+type Scenario struct {
+	Name     string `yaml:"name"`
+	BaseURL  string `yaml:"base_url"`
+	VUs      int    `yaml:"vus"`
+	Duration string `yaml:"duration"`
+	Tasks    []Task `yaml:"tasks"`
+}
 
-	if *url == "" {
-		fmt.Fprintln(os.Stderr, "missing -url")
+type Task struct {
+	Name   string `yaml:"name"`
+	Method string `yaml:"method"`
+	URL    string `yaml:"url"`
+}
+
+func main() {
+	file := flag.String("f", "", "scenario file")
+	flag.Parse()
+	if *file == "" {
+		fmt.Fprintln(os.Stderr, "missing -f")
 		os.Exit(1)
 	}
+	sc, err := loadScenario(*file)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if err := runScenario(sc); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
 
-	stop := time.After(*duration)
+func loadScenario(path string) (*Scenario, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var sc Scenario
+	if err := yaml.Unmarshal(b, &sc); err != nil {
+		return nil, err
+	}
+	return &sc, nil
+}
+
+func runScenario(sc *Scenario) error {
+	d, _ := time.ParseDuration(sc.Duration)
+	stop := time.After(d)
 	var wg sync.WaitGroup
-	for i := 0; i < *vus; i++ {
+	for i := 0; i < sc.VUs; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
@@ -31,16 +68,19 @@ func main() {
 				case <-stop:
 					return
 				default:
-					resp, err := http.Get(*url)
-					if err != nil {
-						fmt.Fprintln(os.Stderr, err)
-						continue
+					for _, task := range sc.Tasks {
+						resp, err := http.Get(sc.BaseURL + task.URL)
+						if err != nil {
+							fmt.Fprintln(os.Stderr, err)
+							continue
+						}
+						fmt.Println(id, task.Name, resp.StatusCode)
+						resp.Body.Close()
 					}
-					fmt.Println("vu", id, resp.StatusCode)
-					resp.Body.Close()
 				}
 			}
 		}(i + 1)
 	}
 	wg.Wait()
+	return nil
 }
