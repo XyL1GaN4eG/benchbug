@@ -9,22 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"benchbug/internal/scenario"
 )
-
-type Scenario struct {
-	Name     string `yaml:"name"`
-	BaseURL  string `yaml:"base_url"`
-	VUs      int    `yaml:"vus"`
-	Duration string `yaml:"duration"`
-	Tasks    []Task `yaml:"tasks"`
-}
-
-type Task struct {
-	Name   string `yaml:"name"`
-	Method string `yaml:"method"`
-	URL    string `yaml:"url"`
-}
 
 func main() {
 	file := flag.String("f", "", "scenario file")
@@ -33,7 +19,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "usage: benchbug -f scenario.yaml")
 		os.Exit(1)
 	}
-	sc, err := loadScenario(*file)
+	sc, err := scenario.LoadFile(*file)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -44,36 +30,8 @@ func main() {
 	}
 }
 
-func loadScenario(path string) (*Scenario, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	if len(strings.TrimSpace(string(b))) == 0 {
-		return nil, fmt.Errorf("scenario file is empty")
-	}
-	var sc Scenario
-	if err := yaml.Unmarshal(b, &sc); err != nil {
-		return nil, err
-	}
-	if sc.VUs <= 0 {
-		sc.VUs = 1
-	}
-	if sc.Duration == "" {
-		sc.Duration = "10s"
-	}
-	return &sc, nil
-}
-
-func runScenario(sc *Scenario) error {
-	d, err := time.ParseDuration(sc.Duration)
-	if err != nil {
-		return fmt.Errorf("bad duration: %w", err)
-	}
-	if len(sc.Tasks) == 0 {
-		return fmt.Errorf("scenario has no tasks")
-	}
-	stop := time.After(d)
+func runScenario(sc *scenario.Scenario) error {
+	stop := time.After(sc.Duration.Duration)
 	var wg sync.WaitGroup
 	for i := 0; i < sc.VUs; i++ {
 		wg.Add(1)
