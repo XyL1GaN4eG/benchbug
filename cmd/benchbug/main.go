@@ -90,7 +90,7 @@ func runScenario(sc *Scenario) error {
 							fmt.Fprintln(os.Stderr, err)
 							continue
 						}
-						fmt.Println(id, task.Name, resp.StatusCode)
+						fmt.Printf("vu=%d task=%s status=%d\n", id, task.Name, resp.StatusCode)
 						resp.Body.Close()
 					}
 				}
