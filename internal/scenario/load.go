@@ -39,7 +39,7 @@ func LoadFile(path string) (*Scenario, error) {
 
 func Validate(sc *Scenario) error {
 	var errs []string
-	if sc.Name == "" {
+	if strings.TrimSpace(sc.Name) == "" {
 		errs = append(errs, "name is required")
 	}
 	if sc.VUs <= 0 {
@@ -52,7 +52,7 @@ func Validate(sc *Scenario) error {
 		errs = append(errs, "tasks must be non-empty")
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf("invalid scenario: %s", strings.Join(errs, "; "))
+		return fmt.Errorf("scenario validation failed:\n- %s", strings.Join(errs, "\n- "))
 	}
 	return nil
 }
