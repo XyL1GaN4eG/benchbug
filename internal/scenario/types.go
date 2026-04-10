@@ -8,7 +8,7 @@ type Scenario struct {
 	Tasks    []Task   `yaml:"tasks" json:"tasks"`
 }
 
-type Task struct {
+type Step struct {
 	Name   string `yaml:"name" json:"name"`
 	Method string `yaml:"method" json:"method"`
 	URL    string `yaml:"url" json:"url"`

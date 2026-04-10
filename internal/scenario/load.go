@@ -30,7 +30,7 @@ func LoadFile(path string) (*Scenario, error) {
 	if err != nil {
 		return nil, fmt.Errorf("bad duration: %w", err)
 	}
-	sc := &Scenario{Name: raw.Name, BaseURL: raw.BaseURL, VUs: raw.VUs, Duration: d, Tasks: raw.Tasks}
+	sc := &Scenario{Name: raw.Name, BaseURL: raw.BaseURL, VUs: raw.VUs, Duration: d, Steps: raw.Steps}
 	if err := Validate(sc); err != nil {
 		return nil, err
 	}
@@ -48,8 +48,8 @@ func Validate(sc *Scenario) error {
 	if sc.Duration.Duration <= 0 {
 		errs = append(errs, "duration must be > 0")
 	}
-	if len(sc.Tasks) == 0 {
-		errs = append(errs, "tasks must be non-empty")
+	if len(sc.Steps) == 0 {
+		errs = append(errs, "steps must be non-empty")
 	}
 	if len(errs) > 0 {
 		return fmt.Errorf("scenario validation failed:\n- %s", strings.Join(errs, "\n- "))

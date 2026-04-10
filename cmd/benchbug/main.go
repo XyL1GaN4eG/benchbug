@@ -42,13 +42,13 @@ func runScenario(sc *scenario.Scenario) error {
 				case <-stop:
 					return
 				default:
-					for _, task := range sc.Tasks {
-						resp, err := http.Get(sc.BaseURL + task.URL)
+					for _, step := range sc.Steps {
+						resp, err := http.Get(sc.BaseURL + step.URL)
 						if err != nil {
 							fmt.Fprintln(os.Stderr, err)
 							continue
 						}
-						fmt.Printf("vu=%d task=%s status=%d\n", id, task.Name, resp.StatusCode)
+						fmt.Printf("vu=%d task=%s status=%d\n", id, step.Name, resp.StatusCode)
 						resp.Body.Close()
 					}
 				}

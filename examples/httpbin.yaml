@@ -2,7 +2,7 @@ name: httpbin-smoke
 base_url: https://httpbin.org
 vus: 2
 duration: 5s
-tasks:
+steps:
   - name: get
     method: GET
     url: /get
