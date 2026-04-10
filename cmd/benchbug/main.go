@@ -43,7 +43,12 @@ func runScenario(sc *scenario.Scenario) error {
 					return
 				default:
 					for _, step := range sc.Steps {
-						resp, err := http.Get(sc.BaseURL + step.URL)
+						u, err := scenario.Expand(step.URL, sc.Vars, scenario.TemplateCtx{VU: id, Iter: 1})
+						if err != nil {
+							fmt.Fprintln(os.Stderr, err)
+							continue
+						}
+						resp, err := http.Get(sc.BaseURL + u)
 						if err != nil {
 							fmt.Fprintln(os.Stderr, err)
 							continue

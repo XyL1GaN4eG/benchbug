@@ -30,7 +30,7 @@ func LoadFile(path string) (*Scenario, error) {
 	if err != nil {
 		return nil, fmt.Errorf("bad duration: %w", err)
 	}
-	sc := &Scenario{Name: raw.Name, BaseURL: raw.BaseURL, VUs: raw.VUs, Duration: d, Steps: raw.Steps}
+	sc := &Scenario{Name: raw.Name, BaseURL: raw.BaseURL, VUs: raw.VUs, Duration: d, Vars: raw.Vars, Steps: raw.Steps}
 	if err := Validate(sc); err != nil {
 		return nil, err
 	}
