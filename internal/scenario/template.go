@@ -12,14 +12,33 @@ type TemplateCtx struct {
 }
 
 func Expand(s string, vars map[string]string, ctx TemplateCtx) (string, error) {
-	out := s
-	out = strings.ReplaceAll(out, "${__vu}", strconv.Itoa(ctx.VU))
-	out = strings.ReplaceAll(out, "${__iter}", strconv.FormatInt(ctx.Iter, 10))
-	for k, v := range vars {
-		out = strings.ReplaceAll(out, "${"+k+"}", v)
+	var out strings.Builder
+	for {
+		i := strings.Index(s, "${")
+		if i < 0 {
+			out.WriteString(s)
+			break
+		}
+		out.WriteString(s[:i])
+		s = s[i+2:]
+		j := strings.IndexByte(s, '}')
+		if j < 0 {
+			return "", fmt.Errorf("unterminated template placeholder")
+		}
+		key := strings.TrimSpace(s[:j])
+		s = s[j+1:]
+		switch key {
+		case "__vu":
+			out.WriteString(strconv.Itoa(ctx.VU))
+		case "__iter":
+			out.WriteString(strconv.FormatInt(ctx.Iter, 10))
+		default:
+			v, ok := vars[key]
+			if !ok {
+				return "", fmt.Errorf("unknown template variable %q", key)
+			}
+			out.WriteString(v)
+		}
 	}
-	if strings.Contains(out, "${") {
-		return "", fmt.Errorf("unknown template variable")
-	}
-	return out, nil
+	return out.String(), nil
 }
