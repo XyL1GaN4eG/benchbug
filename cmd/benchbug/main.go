@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"benchbug/internal/httpx"
 
 	"benchbug/internal/scenario"
 )
@@ -48,7 +50,12 @@ func runScenario(sc *scenario.Scenario) error {
 							fmt.Fprintln(os.Stderr, err)
 							continue
 						}
-						resp, err := http.Get(sc.BaseURL + u)
+						req, err := httpx.BuildRequest(context.Background(), httpx.RequestSpec{Method: step.Method, BaseURL: sc.BaseURL, URL: u})
+						if err != nil {
+							fmt.Fprintln(os.Stderr, err)
+							continue
+						}
+						resp, err := http.DefaultClient.Do(req)
 						if err != nil {
 							fmt.Fprintln(os.Stderr, err)
 							continue
