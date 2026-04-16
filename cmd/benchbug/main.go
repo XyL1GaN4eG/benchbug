@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"benchbug/internal/httpx"
+	"benchbug/internal/metrics"
 
 	"benchbug/internal/scenario"
 )
@@ -33,6 +34,11 @@ func main() {
 }
 
 func runScenario(sc *scenario.Scenario) error {
+	collector := metrics.NewCollector()
+	defer func() {
+		sum := collector.Summary()
+		fmt.Printf("summary requests=%d fails=%d\n", sum.Requests, sum.Fails)
+	}()
 	stop := time.After(sc.Duration.Duration)
 	var wg sync.WaitGroup
 	for i := 0; i < sc.VUs; i++ {
@@ -60,7 +66,8 @@ func runScenario(sc *scenario.Scenario) error {
 							fmt.Fprintln(os.Stderr, err)
 							continue
 						}
-						fmt.Printf("vu=%d task=%s status=%d\n", id, step.Name, resp.StatusCode)
+						collector.Add(metrics.Event{Status: resp.StatusCode})
+						fmt.Printf("vu=%d step=%s status=%d\n", id, step.Name, resp.StatusCode)
 						resp.Body.Close()
 					}
 				}
