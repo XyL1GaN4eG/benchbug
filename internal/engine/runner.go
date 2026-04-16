@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -42,12 +41,10 @@ func Run(ctx context.Context, sc *scenario.Scenario, opts Options, stdout io.Wri
 					for _, step := range sc.Steps {
 						u, err := scenario.Expand(step.URL, sc.Vars, scenario.TemplateCtx{VU: id, Iter: 1})
 						if err != nil {
-							fmt.Fprintln(stdout, err)
 							continue
 						}
 						req, err := httpx.BuildRequest(ctx, httpx.RequestSpec{Method: step.Method, BaseURL: sc.BaseURL, URL: u})
 						if err != nil {
-							fmt.Fprintln(stdout, err)
 							continue
 						}
 						resp, err := http.DefaultClient.Do(req)
