@@ -6,74 +6,30 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
-	"benchbug/internal/httpx"
-	"benchbug/internal/metrics"
-
+	"benchbug/internal/engine"
 	"benchbug/internal/scenario"
 )
 
 func main() {
-	file := flag.String("f", "", "scenario file")
+	opts := engine.Options{}
+	flag.StringVar(&opts.File, "f", "", "scenario file")
+	flag.IntVar(&opts.VUs, "vus", 0, "override VUs")
+	flag.DurationVar(&opts.Duration, "duration", 0, "override duration")
 	flag.Parse()
-	if strings.TrimSpace(*file) == "" {
+	if strings.TrimSpace(opts.File) == "" {
 		fmt.Fprintln(os.Stderr, "usage: benchbug -f scenario.yaml")
 		os.Exit(1)
 	}
-	sc, err := scenario.LoadFile(*file)
+	sc, err := scenario.LoadFile(opts.File)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if err := runScenario(sc); err != nil {
+	if _, err := engine.Run(context.Background(), sc, opts, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-}
-
-func runScenario(sc *scenario.Scenario) error {
-	collector := metrics.NewCollector()
-	defer func() {
-		sum := collector.Summary()
-		fmt.Printf("summary requests=%d fails=%d\n", sum.Requests, sum.Fails)
-	}()
-	stop := time.After(sc.Duration.Duration)
-	var wg sync.WaitGroup
-	for i := 0; i < sc.VUs; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			for {
-				select {
-				case <-stop:
-					return
-				default:
-					for _, step := range sc.Steps {
-						u, err := scenario.Expand(step.URL, sc.Vars, scenario.TemplateCtx{VU: id, Iter: 1})
-						if err != nil {
-							fmt.Fprintln(os.Stderr, err)
-							continue
-						}
-						req, err := httpx.BuildRequest(context.Background(), httpx.RequestSpec{Method: step.Method, BaseURL: sc.BaseURL, URL: u})
-						if err != nil {
-							fmt.Fprintln(os.Stderr, err)
-							continue
-						}
-						resp, err := http.DefaultClient.Do(req)
-						if err != nil {
-							fmt.Fprintln(os.Stderr, err)
-							continue
-						}
-						collector.Add(metrics.Event{Status: resp.StatusCode})
-						fmt.Printf("vu=%d step=%s status=%d\n", id, step.Name, resp.StatusCode)
-						resp.Body.Close()
-					}
-				}
-			}
-		}(i + 1)
-	}
-	wg.Wait()
-	return nil
+	_ = time.Second
 }
