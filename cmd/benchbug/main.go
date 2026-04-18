@@ -66,6 +66,7 @@ func runCommand(args []string) int {
 	fs.StringVar(&opts.File, "f", "", "scenario file")
 	fs.IntVar(&opts.VUs, "vus", 0, "override VUs")
 	fs.DurationVar(&opts.Duration, "duration", 0, "override duration")
+	fs.BoolVar(&opts.Quiet, "quiet", false, "print only final summary")
 	if err := fs.Parse(args); err != nil {
 		return 1
 	}
