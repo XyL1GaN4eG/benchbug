@@ -9,6 +9,7 @@ import (
 
 	"benchbug/internal/httpx"
 	"benchbug/internal/metrics"
+	"benchbug/internal/output"
 	"benchbug/internal/scenario"
 )
 
@@ -61,6 +62,6 @@ func Run(ctx context.Context, sc *scenario.Scenario, opts Options, stdout io.Wri
 	}
 	wg.Wait()
 	sum := collector.Summary()
-	fmt.Fprintf(stdout, "summary requests=%d fails=%d\n", sum.Requests, sum.Fails)
+	output.NewConsole(stdout).OnSummary(sum)
 	return RunResult{Summary: sum}, nil
 }
