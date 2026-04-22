@@ -1,0 +1,30 @@
+name: local-arrival-rate
+base_url: http://localhost:8080
+
+arrival_rate:
+  rate: 100
+  per: 1s
+  duration: 10s
+  max_vus: 8
+
+defaults:
+  timeout: 2s
+  headers:
+    User-Agent: benchbug/0.1
+
+steps:
+  - name: slow
+    group: open-model
+    request:
+      method: GET
+      url: /slow?ms=100
+    checks:
+      - status_in: [200]
+
+thresholds:
+  - metric: http_req_failed_rate
+    op: <
+    value: 0.01
+  - metric: dropped_iterations_rate
+    op: <
+    value: 0.35

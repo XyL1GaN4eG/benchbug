@@ -66,6 +66,8 @@ func runCommand(args []string) int {
 	fs.StringVar(&opts.File, "f", "", "scenario file")
 	fs.IntVar(&opts.VUs, "vus", 0, "override VUs")
 	fs.DurationVar(&opts.Duration, "duration", 0, "override duration")
+	fs.Float64Var(&opts.Rate, "arrival-rate", 0, "run N new iterations per second")
+	fs.IntVar(&opts.MaxVUs, "max-vus", 0, "max concurrent iterations for arrival-rate mode")
 	fs.BoolVar(&opts.Quiet, "quiet", false, "print only final summary")
 	if err := fs.Parse(args); err != nil {
 		return 1
