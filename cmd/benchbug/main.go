@@ -2,22 +2,26 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
-	"strings"
+	"time"
 
 	"benchbug/internal/engine"
 	"benchbug/internal/scenario"
 )
 
-func main() { os.Exit(run(os.Args[1:])) }
+func main() {
+	os.Exit(run(os.Args[1:]))
+}
 
 func run(args []string) int {
 	if len(args) == 0 {
 		usage()
 		return 1
 	}
+
 	switch args[0] {
 	case "run":
 		return runCommand(args[1:])
@@ -34,9 +38,24 @@ func run(args []string) int {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `Usage:
+	fmt.Fprint(os.Stderr, `benchbug is a local HTTP load testing CLI.
+
+Usage:
   benchbug validate -f scenario.yaml
-  benchbug run -f scenario.yaml
+  benchbug run -f scenario.yaml [flags]
+
+Run flags:
+  -vus N             override scenario VUs and ignore stages
+  -duration 30s      override scenario duration and ignore stages
+  -arrival-rate N    run N new iterations per second (open model)
+  -max-vus N         max concurrent iterations for arrival-rate mode
+  -timeout 10s       default request timeout
+  -seed N            deterministic seed for builtins like ${__rand_int(1,10)}
+  -json              print JSONL snapshots + summary to stdout
+  -quiet             print only final summary
+  -insecure          skip TLS certificate verification
+  -max-body BYTES    max response body bytes read per request (default 10485760)
+
 `)
 }
 
@@ -47,7 +66,7 @@ func validateCommand(args []string) int {
 	if err := fs.Parse(args); err != nil {
 		return 1
 	}
-	if strings.TrimSpace(*file) == "" {
+	if *file == "" {
 		fmt.Fprintln(os.Stderr, "validate: -f is required")
 		return 1
 	}
@@ -60,15 +79,24 @@ func validateCommand(args []string) int {
 }
 
 func runCommand(args []string) int {
-	opts := engine.Options{}
+	opts := &engine.Options{
+		Timeout: 10 * time.Second,
+		MaxBody: 10 << 20,
+	}
+
 	fs := flag.NewFlagSet("run", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	fs.StringVar(&opts.File, "f", "", "scenario file")
-	fs.IntVar(&opts.VUs, "vus", 0, "override VUs")
-	fs.DurationVar(&opts.Duration, "duration", 0, "override duration")
+	fs.IntVar(&opts.VUs, "vus", 0, "override VUs and ignore stages")
+	fs.DurationVar(&opts.Duration, "duration", 0, "override duration and ignore stages")
 	fs.Float64Var(&opts.Rate, "arrival-rate", 0, "run N new iterations per second")
 	fs.IntVar(&opts.MaxVUs, "max-vus", 0, "max concurrent iterations for arrival-rate mode")
+	fs.Int64Var(&opts.Seed, "seed", 0, "deterministic seed")
+	fs.BoolVar(&opts.JSON, "json", false, "print JSONL snapshots + summary")
 	fs.BoolVar(&opts.Quiet, "quiet", false, "print only final summary")
+	fs.DurationVar(&opts.Timeout, "timeout", opts.Timeout, "default request timeout")
+	fs.BoolVar(&opts.Insecure, "insecure", false, "skip TLS certificate verification")
+	fs.Int64Var(&opts.MaxBody, "max-body", opts.MaxBody, "max response body bytes read per request")
 	if err := fs.Parse(args); err != nil {
 		return 1
 	}
@@ -76,15 +104,15 @@ func runCommand(args []string) int {
 		fmt.Fprintln(os.Stderr, "run: -f is required")
 		return 1
 	}
+
 	sc, err := scenario.LoadFile(opts.File)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	_, err = engine.Run(context.Background(), sc, opts, os.Stdout)
-	if err != nil {
+	result, err := engine.Run(context.Background(), sc, *opts, os.Stdout)
+	if err != nil && !errors.Is(err, context.Canceled) {
 		fmt.Fprintln(os.Stderr, err)
-		return 1
 	}
-	return 0
+	return result.ExitCode
 }
