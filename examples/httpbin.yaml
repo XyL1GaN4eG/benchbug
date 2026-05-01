@@ -2,9 +2,47 @@ name: httpbin-smoke
 base_url: https://httpbin.org
 vus: 2
 duration: 5s
+
+defaults:
+  timeout: 5s
+  headers:
+    User-Agent: benchbug/0.1
+
 vars:
-  q: benchbug
+  client_id: demo-${__rand_int(1000,9999)}
+
 steps:
-  - name: get
-    method: GET
-    url: /get?q=${q}&vu=${__vu}
+  - name: get-json
+    group: smoke
+    request:
+      method: GET
+      url: /json?vu=${__vu}&iter=${__iter}
+    checks:
+      - status_in: [200]
+      - jsonpath_exists: slideshow.title
+
+  - name: post-anything
+    group: smoke
+    request:
+      method: POST
+      url: /anything
+      json:
+        client_id: ${client_id}
+        vu: ${__vu}
+        iter: ${__iter}
+    checks:
+      - status_in: [200]
+      - jsonpath_exists: json.client_id
+    think_time: 250ms
+
+thresholds:
+  - metric: http_req_failed_rate
+    op: <
+    value: 0.05
+  - metric: http_req_duration_p95
+    op: <
+    value: 2s
+  - metric: checks_pass_rate
+    op: ">"
+    value: 0.99
+

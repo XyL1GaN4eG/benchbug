@@ -1,3 +1,6 @@
 /benchbug
+/benchbug-target
 *.test
 coverage.out
+.idea/
+cmd/.idea/

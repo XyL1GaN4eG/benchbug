@@ -1,0 +1,83 @@
+name: local-target
+base_url: http://localhost:8080
+vus: 5
+duration: 10s
+
+defaults:
+  timeout: 3s
+  headers:
+    User-Agent: benchbug/0.1
+
+vars:
+  username: bench-${__vu}
+
+steps:
+  - name: login
+    group: auth
+    request:
+      method: POST
+      url: /login
+      json:
+        username: ${username}
+    extract:
+      jsonpath:
+        token: token
+    checks:
+      - status_in: [200]
+      - jsonpath_exists: token
+
+  - name: create-user
+    group: users
+    request:
+      method: POST
+      url: /users
+      headers:
+        Authorization: Bearer ${token}
+      json:
+        name: User-${__vu}-${__iter}
+        email: user-${__vu}-${__iter}@example.test
+    extract:
+      jsonpath:
+        user_id: data.id
+    checks:
+      - status_in: [201]
+      - jsonpath_exists: data.id
+
+  - name: get-user
+    group: users
+    request:
+      method: GET
+      url: /users/${user_id}
+      headers:
+        Authorization: Bearer ${token}
+    checks:
+      - status_in: [200]
+      - jsonpath_exists: data.email
+
+  - name: slow
+    group: utility
+    request:
+      method: GET
+      url: /slow?ms=50
+    checks:
+      - status_in: [200]
+
+  - name: bytes
+    group: utility
+    request:
+      method: GET
+      url: /bytes?n=16kb
+    checks:
+      - status_in: [200]
+
+thresholds:
+  - metric: http_req_failed_rate
+    op: <
+    value: 0.01
+  - metric: http_req_duration_p95
+    op: <
+    value: 250ms
+  - metric: checks_pass_rate
+    op: ">"
+    value: 0.99
+
