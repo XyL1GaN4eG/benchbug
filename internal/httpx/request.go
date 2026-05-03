@@ -115,11 +115,14 @@ type Response struct {
 }
 
 func ReadResponse(resp *http.Response, maxBytes int64) (*Response, error) {
-	defer resp.Body.Close()
 	lim := io.LimitReader(resp.Body, maxBytes)
 	b, err := io.ReadAll(lim)
+	closeErr := resp.Body.Close()
 	if err != nil {
 		return nil, err
+	}
+	if closeErr != nil {
+		return nil, closeErr
 	}
 	ct := resp.Header.Get("Content-Type")
 	mt, _, _ := mime.ParseMediaType(ct)

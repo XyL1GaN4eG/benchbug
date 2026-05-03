@@ -31,14 +31,14 @@ func run(args []string) int {
 		usage()
 		return 0
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command %q\n\n", args[0])
+		_, _ = fmt.Fprintf(os.Stderr, "unknown command %q\n\n", args[0])
 		usage()
 		return 1
 	}
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `benchbug is a local HTTP load testing CLI.
+	_, _ = fmt.Fprint(os.Stderr, `benchbug is a local HTTP load testing CLI.
 
 Usage:
   benchbug validate -f scenario.yaml
@@ -67,14 +67,14 @@ func validateCommand(args []string) int {
 		return 1
 	}
 	if *file == "" {
-		fmt.Fprintln(os.Stderr, "validate: -f is required")
+		_, _ = fmt.Fprintln(os.Stderr, "validate: -f is required")
 		return 1
 	}
 	if _, err := scenario.LoadFile(*file); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	fmt.Printf("%s: ok\n", *file)
+	_, _ = fmt.Printf("%s: ok\n", *file)
 	return 0
 }
 
@@ -101,18 +101,18 @@ func runCommand(args []string) int {
 		return 1
 	}
 	if opts.File == "" {
-		fmt.Fprintln(os.Stderr, "run: -f is required")
+		_, _ = fmt.Fprintln(os.Stderr, "run: -f is required")
 		return 1
 	}
 
 	sc, err := scenario.LoadFile(opts.File)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
 	result, err := engine.Run(context.Background(), sc, *opts, os.Stdout)
 	if err != nil && !errors.Is(err, context.Canceled) {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 	}
 	return result.ExitCode
 }

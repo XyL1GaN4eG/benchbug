@@ -33,7 +33,7 @@ func TestTargetCRUDFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer closeBody(t, resp.Body)
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("create status = %d", resp.StatusCode)
 	}
@@ -56,7 +56,7 @@ func TestTargetCRUDFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer closeBody(t, resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("get status = %d", resp.StatusCode)
 	}
@@ -96,7 +96,7 @@ func TestTargetUtilityEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer closeBody(t, resp.Body)
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -112,7 +112,7 @@ func login(t *testing.T, client *http.Client, baseURL string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer closeBody(t, resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("login status = %d", resp.StatusCode)
 	}
@@ -126,4 +126,11 @@ func login(t *testing.T, client *http.Client, baseURL string) string {
 		t.Fatal("expected token")
 	}
 	return out.Token
+}
+
+func closeBody(t *testing.T, body io.Closer) {
+	t.Helper()
+	if err := body.Close(); err != nil {
+		t.Errorf("close response body: %v", err)
+	}
 }

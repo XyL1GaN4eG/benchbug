@@ -34,7 +34,7 @@ func main() {
 		LogRequests: *logRequests,
 	})
 	if err != nil && !errors.Is(err, context.Canceled) {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

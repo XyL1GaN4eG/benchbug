@@ -103,7 +103,9 @@ func consumeOutput(w io.Writer, opts Options, snapshots <-chan metrics.Snapshot)
 	var jsonOut *output.JSONL
 	if opts.JSON {
 		jsonOut = output.NewJSONL(nopWriteCloser{w: w})
-		defer jsonOut.Close()
+		defer func() {
+			_ = jsonOut.Close()
+		}()
 	}
 	for s := range snapshots {
 		if opts.JSON {
